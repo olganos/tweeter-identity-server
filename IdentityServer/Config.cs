@@ -36,49 +36,30 @@ public static class Config
                 new ApiScope(name: "tweeter-api", displayName: "Tweeter Api")
            };
 
-    public static IEnumerable<Client> Clients =>
-        new List<Client>
-        {           
-            // JavaScript BFF client
-            new Client
-            {
-                ClientId = "bff",
-                ClientSecrets = { new Secret("secret".Sha256()) },
-
-                AllowedGrantTypes = GrantTypes.Code,
-    
-                // where to redirect to after login
-                RedirectUris = { "https://localhost:5003/signin-oidc" },
-
-                // where to redirect to after logout
-                PostLogoutRedirectUris = { "https://localhost:5003/signout-callback-oidc" },
-
-                AllowedScopes = new List<string>
-                {
-                    IdentityServerConstants.StandardScopes.OpenId,
-                    IdentityServerConstants.StandardScopes.Profile,
-                    "verification",
-                    "fullname",
-                    "api1"
-                }
-            },
+    public static IEnumerable<Client> GetClients(string reactBffBaseurl)
+    {
+        return new List<Client>
+        {  
             // React BFF client
             new Client
             {
                 ClientId = "react_bff",
+
+                ClientName = "Tweeter",
+
                 ClientSecrets = { new Secret("secret".Sha256()) },
 
                 AllowedGrantTypes = GrantTypes.Code,
     
                 // where to redirect to after login
-                RedirectUris = { "https://localhost:44485/signin-oidc" },
+                RedirectUris = { $"{reactBffBaseurl}/signin-oidc" },
 
-                FrontChannelLogoutUri = "https://localhost:44485/signout-oidc",
+                FrontChannelLogoutUri = $"{reactBffBaseurl}/signout-oidc",
 
                 // where to redirect to after logout
-                PostLogoutRedirectUris = { "https://localhost:44485/signout-callback-oidc" },
+                PostLogoutRedirectUris = { $"{reactBffBaseurl}/signout-callback-oidc" },
 
-                AllowedCorsOrigins = {"https://localhost:44485"},
+                AllowedCorsOrigins = {reactBffBaseurl},
 
                 AllowedScopes = new List<string>
                 {
@@ -91,4 +72,5 @@ public static class Config
                 }
             }
         };
+    }
 }

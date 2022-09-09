@@ -18,7 +18,8 @@ internal static class HostingExtensions
         builder.Services.AddScoped<IEmailSender, DummyEmailSender>();
 
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
+                ?? builder.Configuration.GetConnectionString("DefaultConnection")));
 
         builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
@@ -40,7 +41,8 @@ internal static class HostingExtensions
             })
             .AddInMemoryIdentityResources(Config.IdentityResources)
             .AddInMemoryApiScopes(Config.ApiScopes)
-            .AddInMemoryClients(Config.Clients)
+            .AddInMemoryClients(Config.GetClients(Environment.GetEnvironmentVariable("CLIENT_REACT_BFF_BASEURL")
+                ?? builder.Configuration.GetValue<string>("Clients:ClientReactBffBaseurl")))
             .AddAspNetIdentity<ApplicationUser>()
             .AddProfileService<CustomProfileService>();
 
