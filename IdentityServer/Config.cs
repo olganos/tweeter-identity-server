@@ -33,47 +33,12 @@ public static class Config
     public static IEnumerable<ApiScope> ApiScopes =>
        new ApiScope[]
            {
-                new ApiScope(name: "api1", displayName: "MyAPI")
+                new ApiScope(name: "tweeter-api", displayName: "Tweeter Api")
            };
 
     public static IEnumerable<Client> Clients =>
         new List<Client>
-        {
-            // machine to machine client (from quickstart 1)
-            new Client
-            {
-                ClientId = "client",
-                ClientSecrets = { new Secret("secret".Sha256()) },
-
-                AllowedGrantTypes = GrantTypes.ClientCredentials,
-                // scopes that client has access to
-                AllowedScopes = { "api1" }
-            },
-            // interactive ASP.NET Core Web App
-            new Client
-            {
-                ClientId = "web",
-                ClientSecrets = { new Secret("secret".Sha256()) },
-
-                AllowedGrantTypes = GrantTypes.Code,
-            
-                // where to redirect to after login
-                RedirectUris = { "https://localhost:5002/signin-oidc" },
-
-                // where to redirect to after logout
-                PostLogoutRedirectUris = { "https://localhost:5002/signout-callback-oidc" },
-
-                AllowOfflineAccess = true,
-
-                AllowedScopes = new List<string>
-                {
-                    IdentityServerConstants.StandardScopes.OpenId,
-                    IdentityServerConstants.StandardScopes.Profile,
-                    "verification",
-                    "fullname",
-                    "api1"
-                }
-            },
+        {           
             // JavaScript BFF client
             new Client
             {
@@ -119,9 +84,10 @@ public static class Config
                 {
                     IdentityServerConstants.StandardScopes.OpenId,
                     IdentityServerConstants.StandardScopes.Profile,
+                    IdentityServerConstants.StandardScopes.Email,
                     "verification",
                     "fullname",
-                    "api1"
+                    "tweeter-api"
                 }
             }
         };

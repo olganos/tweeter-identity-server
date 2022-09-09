@@ -6,12 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Pages\Account\ConfirmEmail.cshtml.cs" />
     <Compile Remove="Pages\Account\RegisterConfirmation.cshtml.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Remove="Pages\Account\ConfirmEmail.cshtml" />
     <Content Remove="Pages\Account\RegisterConfirmation.cshtml" />
     <Content Remove="Pages\Account\_StatusMessage.cshtml" />
   </ItemGroup>

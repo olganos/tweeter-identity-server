@@ -2,8 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
+using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
+using Duende.IdentityServer.Events;
+using Duende.IdentityServer.Services;
+using IdentityModel;
 using IdentityServer.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -22,22 +26,28 @@ public class Index : PageModel
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IUserStore<ApplicationUser> _userStore;
-    // private readonly IUserEmailStore<ApplicationUser> _emailStore;
+    private readonly IUserEmailStore<ApplicationUser> _emailStore;
+    private readonly IIdentityServerInteractionService _interaction;
     private readonly ILogger<Index> _logger;
     private readonly IEmailSender _emailSender;
+    private readonly IEventService _events;
 
     public Index(
         UserManager<ApplicationUser> userManager,
         IUserStore<ApplicationUser> userStore,
         SignInManager<ApplicationUser> signInManager,
-        ILogger<Index> logger,
+        IIdentityServerInteractionService interaction,
+        IEventService events,
+    ILogger<Index> logger,
         IEmailSender emailSender
         )
     {
         _userManager = userManager;
         _userStore = userStore;
-        //_emailStore = GetEmailStore();
+        _emailStore = GetEmailStore();
         _signInManager = signInManager;
+        _interaction = interaction;
+        _events = events;
         _logger = logger;
         _emailSender = emailSender;
     }
@@ -82,14 +92,24 @@ public class Index : PageModel
                 PhoneNumber = Input.PhoneNumber
             };
 
-            //await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-            //await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+            await _userStore.SetUserNameAsync(user, Input.LoginId, CancellationToken.None);
+            await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
             var result = await _userManager.CreateAsync(user, Input.Password);
 
             if (result.Succeeded)
             {
                 _logger.LogInformation("User created a new account with password.");
 
+                // await _userManager.AddClaimsAsync(user, new Claim[]
+                // {
+                //     new Claim(JwtClaimTypes.Name, Input.LoginId),
+                //     new Claim(JwtClaimTypes.Email, Input.Email),
+                //     new Claim(JwtClaimTypes.FamilyName, Input.LastName),
+                //     new Claim(JwtClaimTypes.GivenName, Input.FirstName)
+                // });
+
+                // if (_userManager.Options.SignIn.RequireConfirmedAccount)
+                // {
                 var userId = await _userManager.GetUserIdAsync(user);
                 var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                 code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
@@ -104,7 +124,7 @@ public class Index : PageModel
 
                 if (_userManager.Options.SignIn.RequireConfirmedAccount)
                 {
-                    return RedirectToPage("/Account/RegisterConfirmation", new { email = Input.Email, returnUrl });
+                    return RedirectToPage("/Account/Register/RegisterConfirmation", new { email = Input.Email, returnUrl });
                 }
                 else
                 {
@@ -112,6 +132,7 @@ public class Index : PageModel
                     return LocalRedirect(returnUrl);
                 }
             }
+            // }
             foreach (var error in result.Errors)
             {
                 ModelState.AddModelError(string.Empty, error.Description);

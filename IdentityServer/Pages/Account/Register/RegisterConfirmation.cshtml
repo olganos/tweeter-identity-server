@@ -1,0 +1,12 @@
+﻿@page
+@model IdentityServer.Pages.Account.Register.RegisterConfirmationModel
+@{
+    ViewData["Title"] = "Register confirmation";
+}
+
+<h1>@ViewData["Title"]</h1>
+@{
+    <p>
+        You successfully registered: <a id="confirm-link" asp-page="/Account/Login/index">Click here to log in</a>
+    </p>
+}
