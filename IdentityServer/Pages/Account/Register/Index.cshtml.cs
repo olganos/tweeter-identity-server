@@ -2,13 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
-using Duende.IdentityServer.Events;
+using System.Threading;
+
 using Duende.IdentityServer.Services;
-using IdentityModel;
+
+using IdentityServer.CustomAbstraction;
 using IdentityServer.Models;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -16,6 +18,8 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+
+using static IdentityServer.Services.KafkaProduser;
 
 namespace IdentityServer.Pages.Register;
 
@@ -30,6 +34,7 @@ public class Index : PageModel
     private readonly IIdentityServerInteractionService _interaction;
     private readonly ILogger<Index> _logger;
     private readonly IEmailSender _emailSender;
+    private readonly ITweetCommandHandler _tweetCommandHandler;
     private readonly IEventService _events;
 
     public Index(
@@ -38,7 +43,8 @@ public class Index : PageModel
         SignInManager<ApplicationUser> signInManager,
         IIdentityServerInteractionService interaction,
         IEventService events,
-    ILogger<Index> logger,
+        ILogger<Index> logger,
+        ITweetCommandHandler tweetCommandHandler,
         IEmailSender emailSender
         )
     {
@@ -49,6 +55,7 @@ public class Index : PageModel
         _interaction = interaction;
         _events = events;
         _logger = logger;
+        _tweetCommandHandler = tweetCommandHandler;
         _emailSender = emailSender;
     }
 
@@ -100,16 +107,6 @@ public class Index : PageModel
             {
                 _logger.LogInformation("User created a new account with password.");
 
-                // await _userManager.AddClaimsAsync(user, new Claim[]
-                // {
-                //     new Claim(JwtClaimTypes.Name, Input.LoginId),
-                //     new Claim(JwtClaimTypes.Email, Input.Email),
-                //     new Claim(JwtClaimTypes.FamilyName, Input.LastName),
-                //     new Claim(JwtClaimTypes.GivenName, Input.FirstName)
-                // });
-
-                // if (_userManager.Options.SignIn.RequireConfirmedAccount)
-                // {
                 var userId = await _userManager.GetUserIdAsync(user);
                 var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                 code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
@@ -129,10 +126,19 @@ public class Index : PageModel
                 else
                 {
                     await _signInManager.SignInAsync(user, isPersistent: false);
+
+                    var addUserCommand = new AddUserCommand
+                    {
+                        UserName = user.UserName,
+                        FirstName = user.FirstName,
+                        LastName = user.LastName
+                    };
+                    await _tweetCommandHandler.SendCommandAsync(addUserCommand, CancellationToken.None);
+
                     return LocalRedirect(returnUrl);
                 }
             }
-            // }
+
             foreach (var error in result.Errors)
             {
                 ModelState.AddModelError(string.Empty, error.Description);

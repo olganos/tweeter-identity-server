@@ -1,4 +1,3 @@
-using Duende.IdentityServer;
 using IdentityServer.Data;
 using IdentityServer.Models;
 using IdentityServer.Services;
@@ -6,6 +5,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Confluent.Kafka;
+using IdentityServer.CustomAbstraction;
+using IdentityServer.Handlers;
 
 namespace IdentityServer;
 
@@ -14,8 +16,21 @@ internal static class HostingExtensions
     public static WebApplication ConfigureServices(this WebApplicationBuilder builder)
     {
         builder.Services.AddRazorPages();
+        builder.Services.AddControllers();
 
         builder.Services.AddScoped<IEmailSender, DummyEmailSender>();
+
+        builder.Services.AddScoped<ITweetProducer>(sp => new KafkaProduser(
+            new ProducerConfig
+            {
+                BootstrapServers = Environment.GetEnvironmentVariable("KAFKA_SERVER")
+                    ?? builder.Configuration.GetValue<string>("KafkaSettings:BootstrapServers")
+            },
+            Environment.GetEnvironmentVariable("KAFKA_ADD_USER_TOPIC_NAME")
+                ?? builder.Configuration.GetValue<string>("KafkaSettings:AddUsertTopicName")
+        ));
+
+        builder.Services.AddScoped<ITweetCommandHandler, TweetCommandHandler>();
 
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
             options.UseNpgsql(Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
@@ -62,6 +77,11 @@ internal static class HostingExtensions
         app.UseRouting();
         app.UseIdentityServer();
         app.UseAuthorization();
+
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllers();
+        });
 
         app.MapRazorPages()
             .RequireAuthorization();
