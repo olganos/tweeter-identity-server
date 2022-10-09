@@ -20,12 +20,26 @@ internal static class HostingExtensions
 
         builder.Services.AddScoped<IEmailSender, DummyEmailSender>();
 
+        bool isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+
+        var kafkaProducerConfig = isDevelopment
+        ? new ProducerConfig
+        {
+            BootstrapServers = Environment.GetEnvironmentVariable("KAFKA_SERVER")
+                ?? builder.Configuration.GetValue<string>("KafkaSettings:BootstrapServers"),
+        }
+        : new ProducerConfig
+        {
+            BootstrapServers = Environment.GetEnvironmentVariable("KAFKA_SERVER")
+                ?? builder.Configuration.GetValue<string>("KafkaSettings:BootstrapServers"),
+            SaslUsername = builder.Configuration.GetValue<string>("KafkaSettings:Key"),
+            SaslPassword = builder.Configuration.GetValue<string>("KafkaSettings:Secret"),
+            SaslMechanism = SaslMechanism.Plain,
+            SecurityProtocol = SecurityProtocol.SaslSsl,
+        };
+
         builder.Services.AddScoped<ITweetProducer>(sp => new KafkaProduser(
-            new ProducerConfig
-            {
-                BootstrapServers = Environment.GetEnvironmentVariable("KAFKA_SERVER")
-                    ?? builder.Configuration.GetValue<string>("KafkaSettings:BootstrapServers")
-            },
+            kafkaProducerConfig,
             Environment.GetEnvironmentVariable("KAFKA_ADD_USER_TOPIC_NAME")
                 ?? builder.Configuration.GetValue<string>("KafkaSettings:AddUsertTopicName")
         ));
